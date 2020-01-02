@@ -1,33 +1,20 @@
-﻿namespace IAS04110
+﻿using System;
+using System.Threading.Channels;
+using System.Threading.Tasks;
+
+namespace IAS04110
 {
     public class ButtonReader : IInputReader
     {
-        public event OnCommandReceived CommandReceived;
-        public string Command { get; set; }
-        private readonly object _commandLock = new object();
-
-        public string SetCommand(string value)
-        {
-            lock (_commandLock)
-            {
-
-                Command = value;
-
-                return Read();
-            }
+        private readonly ChannelWriter<string> _inputWriter;
+        public ButtonReader(ChannelWriter<string> inputWriter) {
+            _inputWriter = inputWriter;
         }
 
-        public string Read()
+        public async Task Read()
         {
-            lock (_commandLock)
-            {
-                if (Command is null) return Command;
-
-                CommandReceived?.Invoke(Command);
-                Command = null;
-
-                return Command;
-            }
+            await _inputWriter.WriteAsync("");
+            throw new NotImplementedException();
         }
     }
 }

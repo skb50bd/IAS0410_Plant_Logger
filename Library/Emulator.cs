@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Options;
-
+﻿using System.Threading;
 using System;
 using System.Net.Sockets;
-
+using System.Threading.Channels;
+using System.Threading.Tasks;
 using static IAS04110.Parser;
 
 namespace IAS04110
@@ -11,7 +11,6 @@ namespace IAS04110
     {
         #region Public Properties
 
-        // ReSharper disable once InconsistentNaming
         public string IP { get; set; }
         public int Port { get; set; }
         public bool IsConnected =>
@@ -19,40 +18,14 @@ namespace IAS04110
 
         public bool Accepted
         {
-            get
-            {
-                lock (_isSubscribedLock)
-                {
-                    return IsConnected && _accepted;
-                }
-            }
-            private set
-            {
-                lock (_isSubscribedLock)
-                {
-
-                    _accepted = value;
-                }
-            }
+            get => IsConnected && _accepted;
+            private set => _accepted = value;
         }
 
         public bool Listening
         {
-            get
-            {
-                lock (_listeningLock)
-                {
-                    return Accepted && _listening;
-                }
-            }
-            private set
-            {
-                lock (_listeningLock)
-                {
-
-                    _listening = value;
-                }
-            }
+            get =>  Accepted && _listening;
+            private set => _listening = value;
         }
 
         #endregion
@@ -61,38 +34,125 @@ namespace IAS04110
 
         private TcpClient _client;
         private NetworkStream _serverStream;
-        private readonly ILogger _logger;
+
         private bool _accepted;
-        private readonly object _isSubscribedLock = new object();
         private bool _listening;
-        private readonly object _listeningLock = new object();
+
+        private readonly ChannelReader<string> _commandReader;
+        private readonly ChannelWriter<string> _logWriter;
+        private CancellationTokenSource _cts;
+        private Task ListenDataTask;
+
         #endregion
 
         public Emulator(
-            IOptionsMonitor<EmulatorSettings> emuMonitor, ILogger logger)
+            EmulatorSettings settings,
+            ChannelReader<string> commandReader,
+            ChannelWriter<string> logWriter)
         {
-            _logger = logger;
-            IP = emuMonitor.CurrentValue.IP;
-            Port = emuMonitor.CurrentValue.Port;
+            _commandReader = commandReader;
+            _logWriter = logWriter;
+
+            IP = settings.IP;
+            Port = settings.Port;
 
             _client = new TcpClient();
+            
             _serverStream = default;
+            _cts = new CancellationTokenSource();
         }
 
-        public bool Connect()
+        public async Task ListenCommand()
         {
-            _client.Close();
-            _client = new TcpClient();
-            _client.Connect(IP, Port);
-            _serverStream = _client.GetStream();
-            Subscribe();
+            await _logWriter.WriteAsync("Emulator Started Listening to Incoming Commands...");
+
+            while (await _commandReader.WaitToReadAsync())
+            {
+                if (_commandReader.TryRead(out var _command))
+                {
+                    ProcessCommand(_command);
+                }
+            }
+        }
+
+        private void ProcessCommand(string command)
+        {
+            switch (command)
+            {
+                case "connect" when !Accepted:
+                    Connect();
+                    break;
+
+                case "start" when Accepted && !Listening:
+                    Start();
+                    break;
+
+                case "stop" when Accepted:
+                    Stop();
+                    break;
+
+                case "break" when Listening:
+                    Break();
+                    break;
+
+                case "exit":
+                    Exit();
+                    break;
+                    
+                default:
+                    _logWriter.WriteAsync($"Ignoring invalid command: \"{command}\"");
+                    break;
+            }
+        }
+
+
+        private void ListenData(object obj) {
+            var token = (CancellationToken)obj;
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    if (Listening)
+                    {
+                        var bytes = Read();
+                        var data = Parser.ParsePackage(bytes);
+
+                        var text = $"Measurement results at {DateTime.Now:G}\n";
+                        text = string.Concat(text, data.Serialize());
+                        _logWriter.WriteAsync(text);
+                        Ready();
+                    }
+                }
+                catch
+                {
+                    _logWriter.WriteAsync("Exception was thrown when trying to read the emulator");
+                }
+                Thread.Sleep(200);
+            }
+        }
+
+        private bool Connect()
+        {
+            _logWriter.WriteAsync("Connecting emulator...");
+            try {                
+                _client.Close();
+                _client = new TcpClient();
+                _client.Connect(IP, Port);
+                _serverStream = _client.GetStream();
+                Subscribe();
+            } catch(SocketException e) {
+                _logWriter.WriteAsync("Error Connecting the Emulator\n" + e.Message);
+            }
+            if (_client.Connected) 
+                _logWriter.WriteAsync("Connected!");
             return _client.Connected;
         }
 
-        public bool Disconnect()
+        private bool Disconnect()
         {
             _serverStream.Close();
             _client.Close();
+            Listening = false;
             return !_client.Connected;
         }
 
@@ -109,7 +169,7 @@ namespace IAS04110
             Accepted = msg.StartsWith("Accepted");
         }
 
-        public byte[] Read()
+        private byte[] Read()
         {
             if (!IsConnected)
                 throw new InvalidOperationException(
@@ -143,39 +203,57 @@ namespace IAS04110
             Write(bytes);
         }
 
-        public void Start()
+        private void Start()
         {
+            _logWriter.WriteAsync("Sending \"Start\" command");
             Write("Start");
             Accepted = true;
             Listening = true;
-            _logger.Log("Started.");
+            _cts = new CancellationTokenSource();
+            ListenDataTask = new Task(ListenData, _cts.Token);
+            ListenDataTask.Start();
+            _logWriter.WriteAsync("Started.");
         }
 
-        public void Stop()
+        private void Stop()
         {
+            _logWriter.WriteAsync("Sending \"Stop\" command");
+            _cts.Cancel();
+            
             Write("Stop");
-            if (IsConnected) Disconnect();
-            _logger.Log("Stopped.");
-        }
-
-        public void Break()
-        {
-            Write("Break");
-            Listening = false;
-            _logger.Log("Broken off.");
-        }
-
-        public void Ready()
-        {
-            Write("Ready");
-            _logger.Log("Ready!");
-        }
-
-        public void Exit()
-        {
+            
             if (IsConnected) 
                 Disconnect();
-            _logger.Log("Disconnected emulator.");
+            
+            _logWriter.WriteAsync("Stopped.");
+        }
+
+        private void Break()
+        {
+            _logWriter.WriteAsync("Sending \"Break\" command");
+            _cts.Cancel();
+
+            Write("Break");
+            Listening = false;
+            
+            _logWriter.WriteAsync("Broken off.");
+        }
+
+        private void Ready()
+        {
+            Write("Ready");
+            _logWriter.WriteAsync("Ready!");
+        }
+
+        private void Exit()
+        {
+            _logWriter.WriteAsync("Exiting the application");
+            _cts.Cancel();
+                    
+            if (IsConnected)
+                Disconnect();
+
+            _logWriter.WriteAsync("Disconnected emulator.");
         }
     }
 }

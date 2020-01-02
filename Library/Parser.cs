@@ -4,7 +4,7 @@ using System.Linq;
 
 using static System.BitConverter;
 using static System.Text.Encoding;
-
+using static IAS04110.UnitResolver;
 using Package =
     System.Collections.Generic.Dictionary<
         string,
@@ -12,15 +12,8 @@ using Package =
 
 namespace IAS04110
 {
-    public class Parser
+    public static class Parser
     {
-        private readonly UnitResolver _resolver;
-
-        public Parser(UnitResolver resolver)
-        {
-            _resolver = resolver;
-        }
-
         public static string FromUnicodeBytes(byte[] bytes)
         {
             bytes = TrimEnd(bytes);
@@ -58,7 +51,7 @@ namespace IAS04110
             return bytes[..size];
         }
 
-        public Package ParsePackage(byte[] bytes)
+        public static Package ParsePackage(byte[] bytes)
         {
             // Cleanup Trailing Bytes
             bytes = TrimEnd(bytes);
@@ -80,7 +73,7 @@ namespace IAS04110
             return channelData;
         }
 
-        private Package ReadChannels(
+        private static Package ReadChannels(
             byte[] bytes, int count)
         {
             var output = new Package();
@@ -105,7 +98,7 @@ namespace IAS04110
             return output;
         }
 
-        private (Dictionary<string, string>, byte[]) ReadPoints(
+        private static (Dictionary<string, string>, byte[]) ReadPoints(
             byte[] bytes, int count)
         {
             var output = new Dictionary<string, string>();
@@ -115,7 +108,7 @@ namespace IAS04110
                 var nameBytes = bytes.TakeWhile(b => b > 0).ToArray();
                 var name = ASCII.GetString(nameBytes);
                 bytes = bytes[(name.Length + 1)..];
-                var unit = _resolver.GetUnit(name);
+                var unit = GetUnit(name);
                 var fourByteData = unit.Type == typeof(int);
 
                 if (fourByteData)

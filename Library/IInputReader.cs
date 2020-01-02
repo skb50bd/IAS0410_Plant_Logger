@@ -1,8 +1,9 @@
-﻿namespace IAS04110
+﻿using System.Threading.Tasks;
+
+namespace IAS04110
 {
     public interface IInputReader
     {
-        event OnCommandReceived CommandReceived;
-        string Read();
+        Task Read();
     }
 }

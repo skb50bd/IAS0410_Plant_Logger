@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace IAS04110
 {
-    public class UnitResolver
+    public static class UnitResolver
     {
-        private readonly Dictionary<string, Unit> _units =
+        private static readonly Dictionary<string, Unit> _units =
             new Dictionary<string, Unit> {
                 {"temperature", new Unit("°C", "0.0", typeof(double)) },
                 {"pressure", new Unit("atm", "0.0", typeof(double)) },
@@ -20,16 +20,16 @@ namespace IAS04110
                 {"ph", new Unit("", "0.0", typeof(double)) }
             };
 
-        public Type GetType(string name) => 
+        public static Type GetType(string name) => 
             GetUnit(name)?.Type;
 
-        public string GetUnitName(string name) => 
+        public static string GetUnitName(string name) => 
             GetUnit(name)?.Name;
 
-        public string GetFormat(string name) =>
+        public static string GetFormat(string name) =>
             GetUnit(name)?.Format;
 
-        public Unit GetUnit(string name)
+        public static Unit GetUnit(string name)
         {
             foreach (var key in _units.Keys)
             {

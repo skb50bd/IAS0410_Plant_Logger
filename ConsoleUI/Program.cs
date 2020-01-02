@@ -36,10 +36,8 @@ namespace ConsoleUI
             services.Configure<EmulatorSettings>(
                 config.GetSection("EmulatorSettings"));
             services.AddSingleton<App>();
-            services.AddSingleton<UnitResolver>();
-            services.AddSingleton<Parser>();
             services.AddSingleton<ILogger, ConsoleLogger>();
-            services.AddSingleton<IInputReader, KeybaordReader>();
+            services.AddSingleton<IInputReader, KeyboardReader>();
             services.AddSingleton<CommandSender>();
             services.AddSingleton<Emulator>();
             return services;
