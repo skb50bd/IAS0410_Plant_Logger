@@ -4,14 +4,12 @@ using Microsoft.Extensions.Configuration;
 using static System.Console;
 using static System.Text.Encoding;
 
-namespace IAS04110
+namespace IAS0410
 {
 
     public class ConsoleLogger : LoggerBase, ILogger
     {
-        public ConsoleLogger(IConfiguration config, ChannelReader<string> logReader)
-        : base(config, logReader)
-        {
+        public ConsoleLogger(IConfiguration config): base(config) {
             OutputEncoding = Unicode;
         }
 

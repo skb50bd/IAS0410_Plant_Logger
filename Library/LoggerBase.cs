@@ -4,14 +4,19 @@ using System.IO;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace IAS04110
+namespace IAS0410
 {
     public class LoggerBase : ILogger
     {
-        private readonly ChannelReader<string> _logReader;
-        public LoggerBase(IConfiguration config, ChannelReader<string> logReader)
-        {
+        private ChannelReader<string> _logReader;
+
+        public LoggerBase(IConfiguration config) {
             _fileName = config.GetValue<string>("FileName");
+        }
+
+        public virtual void Initialize(
+            ChannelReader<string> logReader)
+        {
             _logReader = logReader;
         }
 

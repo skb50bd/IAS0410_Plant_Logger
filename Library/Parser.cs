@@ -4,13 +4,13 @@ using System.Linq;
 
 using static System.BitConverter;
 using static System.Text.Encoding;
-using static IAS04110.UnitResolver;
+using static IAS0410.UnitResolver;
 using Package =
     System.Collections.Generic.Dictionary<
         string,
         System.Collections.Generic.Dictionary<string, string>>;
 
-namespace IAS04110
+namespace IAS0410
 {
     public static class Parser
     {
@@ -55,11 +55,6 @@ namespace IAS04110
         {
             // Cleanup Trailing Bytes
             bytes = TrimEnd(bytes);
-
-            // Measurement Package
-            // 4 Byte - Packet Size
-            //var packetBytes = bytes[..4];
-            //var packetSize = ToInt32(packetBytes);
 
             // 4 Byte - Channel Count
             var channelCountBytes = bytes[4..8];

@@ -1,4 +1,4 @@
-﻿namespace IAS04110
+﻿namespace IAS0410
 {
     public delegate void Log(string message);
 }

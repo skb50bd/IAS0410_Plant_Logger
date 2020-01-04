@@ -1,9 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading.Channels;
+using System.Threading.Tasks;
 
-namespace IAS04110
+namespace IAS0410
 {
     public interface IInputReader
     {
         Task Read();
+        void Initialize(ChannelWriter<string> inputWriter);
     }
 }

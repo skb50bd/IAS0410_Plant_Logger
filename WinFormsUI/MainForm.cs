@@ -1,8 +1,9 @@
-﻿using IAS04110;
+﻿using IAS0410;
 
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using Timer = System.Timers.Timer;
@@ -17,6 +18,7 @@ namespace WinFormsUI
         private readonly Emulator _emu;
         private readonly object _lock = new object();
         private readonly Timer _timer;
+        private Task _appRunTask;
         public MainForm(
             ILogger logger,
             IInputReader input,
@@ -32,10 +34,20 @@ namespace WinFormsUI
             InitializeComponent();
 
             _logger.SetFile(null);
-            _app.Run();
             _timer = new Timer(400);
             _timer.Elapsed += (source, e) => RefreshButtons();
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
             _timer.Start();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            _appRunTask ??= _app.Run();
         }
 
         private void RefreshButtons()
@@ -71,20 +83,17 @@ namespace WinFormsUI
             if (result == DialogResult.OK)
             {
                 _logger.SetFile(dialog.FileName);
-                _logger.Log("Log file opened.");
             }
         }
 
         private void CloseLogFileBtn_Click(object sender, EventArgs e)
         {
             _logger.SetFile(null);
-            _logger.Log("Closed log file.");
         }
 
         private void ConnectBtn_Click(object sender, EventArgs e)
         {
             _input.SetCommand("connect");
-            Thread.Sleep(400);
         }
 
         private void DisconnectBtn_Click(object sender, EventArgs e)
@@ -102,12 +111,12 @@ namespace WinFormsUI
             _input.SetCommand("break");
         }
 
-        protected override void OnFormClosing(FormClosingEventArgs e)
+        protected override async void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
             _timer.Stop();
             _timer.Dispose();
-            _app.Exit();
+            await _appRunTask;
         }
     }
 }

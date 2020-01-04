@@ -3,7 +3,7 @@
         string, 
         System.Collections.Generic.Dictionary<string, string>>;
 
-namespace IAS04110
+namespace IAS0410
 {
     public static class PackageHelper
     {

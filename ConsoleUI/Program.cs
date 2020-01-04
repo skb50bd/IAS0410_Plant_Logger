@@ -1,15 +1,16 @@
-﻿using IAS04110;
+﻿using IAS0410;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using System.IO;
+using System.Threading.Tasks;
 
 namespace ConsoleUI
 {
     internal static class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var services =
                 new ServiceCollection()
@@ -17,7 +18,7 @@ namespace ConsoleUI
                    .BuildServiceProvider();
 
             var app = services.GetService<App>();
-            app.Run();
+            await app.Run();
         }
 
         static IServiceCollection Configure(

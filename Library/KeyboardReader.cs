@@ -2,12 +2,12 @@
 using System;
 using System.Threading.Channels;
 
-namespace IAS04110
+namespace IAS0410
 {
     public class KeyboardReader : IInputReader
     {
-        private readonly ChannelWriter<string> _inputWriter;
-        public KeyboardReader(ChannelWriter<string> inputWriter) {
+        private ChannelWriter<string> _inputWriter;
+        public void Initialize(ChannelWriter<string> inputWriter) {
             _inputWriter = inputWriter;
         }
 
@@ -18,8 +18,9 @@ namespace IAS04110
                 var line = Console.ReadLine();
                 await _inputWriter.WriteAsync(line);
 
-                if (line.ToLowerInvariant() == "exit")
-                    return;}
+                if (line == "exit") break;
+            }
+            _inputWriter.Complete();
         }
     }
 }

@@ -1,4 +1,4 @@
-using IAS04110;
+using IAS0410;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,19 +36,16 @@ namespace WinFormsUI
                    .AddCommandLine(args);
             IConfiguration config = configBuilder.Build();
 
-            services.AddSingleton(config);
-            services.AddOptions();
-            services.AddSingleton<MainForm>();
-            services.Configure<EmulatorSettings>(
-                config.GetSection("EmulatorSettings"));
-            services.AddSingleton<App>();
-            services.AddSingleton<UnitResolver>();
-            services.AddSingleton<Parser>();
-            services.AddSingleton<ILogger, LoggerBase>();
-            services.AddSingleton<IInputReader, ButtonReader>();
-            services.AddSingleton<CommandSender>();
-            services.AddSingleton<Emulator>();
-            return services;
+            return services.AddSingleton(config)
+                           .AddOptions()
+                           .AddSingleton<MainForm>()
+                           .Configure<EmulatorSettings>(
+                                config.GetSection("EmulatorSettings"))
+                           .AddSingleton<App>()
+                           .AddSingleton<ILogger, LoggerBase>()
+                           .AddSingleton<IInputReader, ButtonReader>()
+                           .AddSingleton<CommandSender>()
+                           .AddSingleton<Emulator>();
         }
     }
 }

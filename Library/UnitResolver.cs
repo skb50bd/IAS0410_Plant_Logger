@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace IAS04110
+namespace IAS0410
 {
     public static class UnitResolver
     {
-        private static readonly Dictionary<string, Unit> _units =
+        private static readonly Dictionary<string, Unit> Units =
             new Dictionary<string, Unit> {
                 {"temperature", new Unit("°C", "0.0", typeof(double)) },
                 {"pressure", new Unit("atm", "0.0", typeof(double)) },
@@ -31,11 +31,11 @@ namespace IAS04110
 
         public static Unit GetUnit(string name)
         {
-            foreach (var key in _units.Keys)
+            foreach (var key in Units.Keys)
             {
                 if (name.ToLower()
                         .Contains(key))
-                    return _units[key];
+                    return Units[key];
             }
 
             return null;

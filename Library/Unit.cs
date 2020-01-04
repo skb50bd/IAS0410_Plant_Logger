@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace IAS04110
+namespace IAS0410
 {
     public class Unit
     {

@@ -1,14 +1,14 @@
 ﻿using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace IAS04110
+namespace IAS0410
 {
     public class CommandSender
     {
-        private readonly ChannelReader<string> _inputReader;
-        private readonly ChannelWriter<string> _commandWriter;
-        private readonly ChannelWriter<string> _logWriter;
-        public CommandSender(
+        private ChannelReader<string> _inputReader;
+        private ChannelWriter<string> _commandWriter;
+        private ChannelWriter<string> _logWriter;
+        public void Initialize (
             ChannelReader<string> inputReader,
             ChannelWriter<string> commandWriter,
             ChannelWriter<string> logWriter)
@@ -27,6 +27,7 @@ namespace IAS04110
                         await _commandWriter.WriteAsync(command);
                 }
             }
+            _commandWriter.Complete();
         }
     }
 }

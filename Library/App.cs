@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 
-namespace IAS04110
+namespace IAS0410
 {
     public class App
     {
@@ -16,29 +13,28 @@ namespace IAS04110
 
         private readonly Channel<string> _commandChannel;
         private readonly Channel<string> _logChannel;
-        private readonly Channel<string> _inputChannel;
+        public readonly Channel<string> InputChannel;
 
         public App(
-            IOptionsMonitor<EmulatorSettings> monitor, 
-            IConfiguration config)
+            Emulator emulator,
+            ILogger logger,
+            CommandSender commandSender,
+            IInputReader input
+        )
         {
             _commandChannel = Channel.CreateUnbounded<string>();
             _logChannel = Channel.CreateUnbounded<string>();
-            _inputChannel = Channel.CreateUnbounded<string>();
-        
-            _emulator = new Emulator(
-                monitor.CurrentValue, 
-                _commandChannel.Reader, 
-                _logChannel.Writer);
+            InputChannel = Channel.CreateUnbounded<string>();
 
-            _input = new KeyboardReader(_inputChannel.Writer);
+            _emulator = emulator;
+            _logger = logger;
+            _input = input;
+            _commandSender = commandSender;
 
-            _logger = new ConsoleLogger(config, _logChannel.Reader);
-
-            _commandSender = new CommandSender(
-                _inputChannel.Reader,
-                _commandChannel.Writer, 
-                _logChannel.Writer);   
+            _emulator.Initialize(_commandChannel.Reader, _logChannel.Writer);
+            _input.Initialize(InputChannel.Writer);
+            _logger.Initialize(_logChannel.Reader);
+            _commandSender.Initialize(InputChannel.Reader, _commandChannel.Writer, _logChannel.Writer);
         }
 
         public async Task Run()
@@ -46,8 +42,8 @@ namespace IAS04110
             Console.WriteLine("Starting Application");
 
             // Start Emulator to Listen incoming Commands;
-            var emulatorListen = _emulator.ListenCommand(); 
-        
+            var emulatorListen = _emulator.ListenCommand();
+
             // Start Command Sender to Listen Input Commands
             var commandListen = _commandSender.Start();
 
@@ -58,7 +54,10 @@ namespace IAS04110
             var inputListen = _input.Read();
 
             // When Exit Entered, Close Everything
-            await inputListen.ContinueWith(_ => _inputChannel.Writer.Complete());
+            await inputListen.ContinueWith(_ =>
+            {
+                _logChannel.Writer.Complete();
+            });
             await emulatorListen;
             await commandListen;
             await logListen;
