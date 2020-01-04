@@ -2,7 +2,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -52,17 +51,20 @@ namespace WinFormsUI
 
         private void RefreshButtons()
         {
-            Invoke(new MethodInvoker(delegate ()
+            if (!IsDisposed)
             {
-                openLogFileBtn.Enabled = !_logger.IsFileSet;
-                closeLogFileBtn.Enabled = _logger.IsFileSet;
+                Invoke(new MethodInvoker(delegate()
+                {
+                    openLogFileBtn.Enabled = !_logger.IsFileSet;
+                    closeLogFileBtn.Enabled = _logger.IsFileSet;
 
-                connectBtn.Enabled = !_emu.IsConnected;
-                disconnectBtn.Enabled = _emu.IsConnected;
+                    connectBtn.Enabled = !_emu.IsConnected;
+                    disconnectBtn.Enabled = _emu.IsConnected;
 
-                startBtn.Enabled = _emu.IsConnected && !_emu.Listening;
-                breakBtn.Enabled = _emu.Listening;
-            }));
+                    startBtn.Enabled = _emu.IsConnected && !_emu.Listening;
+                    breakBtn.Enabled = _emu.Listening;
+                }));
+            }
         }
 
         public void WriteToLog(string msg)
@@ -113,6 +115,7 @@ namespace WinFormsUI
 
         protected override async void OnFormClosing(FormClosingEventArgs e)
         {
+            _input.SetCommand("exit");
             base.OnFormClosing(e);
             _timer.Stop();
             _timer.Dispose();

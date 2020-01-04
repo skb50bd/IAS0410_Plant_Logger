@@ -13,7 +13,7 @@ namespace IAS0410
 
         private readonly Channel<string> _commandChannel;
         private readonly Channel<string> _logChannel;
-        public readonly Channel<string> InputChannel;
+        private readonly Channel<string> _inputChannel;
 
         public App(
             Emulator emulator,
@@ -24,7 +24,7 @@ namespace IAS0410
         {
             _commandChannel = Channel.CreateUnbounded<string>();
             _logChannel = Channel.CreateUnbounded<string>();
-            InputChannel = Channel.CreateUnbounded<string>();
+            _inputChannel = Channel.CreateUnbounded<string>();
 
             _emulator = emulator;
             _logger = logger;
@@ -32,9 +32,12 @@ namespace IAS0410
             _commandSender = commandSender;
 
             _emulator.Initialize(_commandChannel.Reader, _logChannel.Writer);
-            _input.Initialize(InputChannel.Writer);
+            _input.Initialize(_inputChannel.Writer);
             _logger.Initialize(_logChannel.Reader);
-            _commandSender.Initialize(InputChannel.Reader, _commandChannel.Writer, _logChannel.Writer);
+            _commandSender.Initialize(
+                _inputChannel.Reader, 
+                _commandChannel.Writer, 
+                _logChannel.Writer);
         }
 
         public async Task Run()
@@ -54,10 +57,10 @@ namespace IAS0410
             var inputListen = _input.Read();
 
             // When Exit Entered, Close Everything
-            await inputListen.ContinueWith(_ =>
-            {
-                _logChannel.Writer.Complete();
-            });
+            //await inputListen.ContinueWith(_ =>
+            //{
+            //    _logChannel.Writer.Complete();
+            //});
             await emulatorListen;
             await commandListen;
             await logListen;
