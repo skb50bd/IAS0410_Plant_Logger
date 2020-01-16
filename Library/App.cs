@@ -56,14 +56,10 @@ namespace IAS0410
             // Listen to Inputs
             var inputListen = _input.Read();
 
-            // When Exit Entered, Close Everything
-            //await inputListen.ContinueWith(_ =>
-            //{
-            //    _logChannel.Writer.Complete();
-            //});
             await emulatorListen;
             await commandListen;
             await logListen;
+            await inputListen;
 
             Console.WriteLine("Closing Application...");
         }

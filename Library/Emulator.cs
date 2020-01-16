@@ -5,6 +5,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using static IAS0410.Parser;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 
 namespace IAS0410
 {
@@ -43,11 +44,13 @@ namespace IAS0410
         private ChannelWriter<string> _logWriter;
         private CancellationTokenSource _cts;
         private Task ListenDataTask;
+        private bool ShowErrors;
 
         #endregion
 
         public Emulator(
-            IOptionsMonitor<EmulatorSettings> settings)
+            IOptionsMonitor<EmulatorSettings> settings,
+            IConfiguration config)
         {
             IP = settings.CurrentValue.IP;
             Port = settings.CurrentValue.Port;
@@ -56,6 +59,8 @@ namespace IAS0410
 
             _serverStream = default;
             _cts = new CancellationTokenSource();
+
+            ShowErrors = config.GetValue<bool>("ShowErrors");
         }
 
         public void Initialize(
@@ -130,7 +135,8 @@ namespace IAS0410
                 }
                 catch (Exception e)
                 {
-                    _logWriter.WriteAsync("Exception was thrown when trying to read the emulator\n" + e.Message);
+                    if(ShowErrors)
+                        _logWriter.WriteAsync("Exception was thrown when trying to read the emulator\n" + e.Message);
                 }
                 Thread.Sleep(200);
             }
